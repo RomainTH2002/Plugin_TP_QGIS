@@ -24,6 +24,7 @@
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
+from qgis.core import QgsProject, QgsWkbTypes
 
 # Initialize Qt resources from file resources.py
 from .resources import *
@@ -189,12 +190,21 @@ class MonPyqgis:
             self.first_start = False
             self.dlg = MonPyqgisDialog()
 
+            self.user_story_uno()
+
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
         result = self.dlg.exec_()
         # See if OK was pressed
         if result:
-            # Do something useful here - delete the line containing pass and
-            # substitute with your code.
             pass
+
+    def user_story_uno(self):   
+        point_layers = [
+            layer.name() for layer in QgsProject.instance().mapLayers().values()
+            if layer.type() == layer.VectorLayer and layer.geometryType() == QgsWkbTypes.PointGeometry
+        ]
+        for couche in point_layers:
+            self.dlg.liste_c_points.addItem(couche)
+     
