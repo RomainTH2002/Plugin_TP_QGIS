@@ -21,16 +21,43 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QEvent
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
-from qgis.core import QgsProject, QgsWkbTypes
+from qgis.core import QgsProject, QgsWkbTypes, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsPointXY
+from qgis.gui import QgsMapTool, QgsMapToolEmitPoint
 
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
 from .pyqgis_plugin_dialog import MonPyqgisDialog
 import os.path
+import time
+from qgis.PyQt.QtGui import (
+QColor,
+)
+
+from qgis.PyQt.QtCore import Qt, QRectF
+
+from qgis.PyQt.QtWidgets import QMenu
+
+from qgis.core import (
+QgsVectorLayer,
+QgsPoint,
+QgsPointXY,
+ QgsProject,
+ QgsGeometry,
+QgsMapRendererJob,
+QgsWkbTypes,
+)
+
+from qgis.gui import (
+ QgsMapCanvas,
+ QgsVertexMarker,
+ QgsMapCanvasItem,
+ QgsMapMouseEvent,
+QgsRubberBand
+ )
 
 
 class MonPyqgis:
@@ -67,6 +94,7 @@ class MonPyqgis:
         # Check if plugin was started the first time in current QGIS session
         # Must be set in initGui() to survive plugin reloads
         self.first_start = None
+        self.canvas = self.iface.mapCanvas()
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -194,13 +222,15 @@ class MonPyqgis:
 
         # show the dialog
         self.dlg.show()
+        #accès a la carte
+        self.dlg.button_u2.clicked.connect(self.user_story_dos)
         # Run the dialog event loop
         result = self.dlg.exec_()
         # See if OK was pressed
         if result:
             pass
 
-    def user_story_uno(self):   
+    def liste_couches_points(self):   
         point_layers = [
             layer.name() for layer in QgsProject.instance().mapLayers().values()
             if layer.type() == layer.VectorLayer and layer.geometryType() == QgsWkbTypes.PointGeometry
@@ -208,3 +238,31 @@ class MonPyqgis:
         for couche in point_layers:
             self.dlg.liste_c_points.addItem(couche)
      
+    def initie_canvas(self, event):
+
+        #self.dlg.hide()
+        self.dlg.longi.setText("XXX")
+        self.dlg.lati.setText("XXX")
+        #activer le cliquage de la carte
+        self.pointTool = QgsMapToolEmitPoint(self.canvas)
+        self.pointTool.canvasClicked.connect(self.displayPoint)
+        self.canvas.setMapTool(self.pointTool)
+        #enregistrer coords
+
+        #reprojeter
+        
+        #afficher
+    
+    def displayPoint(self, point, button):
+          
+        clicked_point = QgsPointXY(point)
+        crs_origin = self.canvas.mapSettings().destinationCrs()
+        crs_dest = QgsCoordinateReferenceSystem("EPSG:4326") 
+        transform = QgsCoordinateTransform(crs_origin, crs_dest, QgsProject.instance())
+        pt_reproj = transform.transform(clicked_point)
+        longitude = round(pt_reproj.x(), 5)
+        latitude = round(pt_reproj.y(), 5)
+        self.dlg.longi.setText(str(longitude))  
+        self.dlg.lati.setText(str(latitude))  
+
+
