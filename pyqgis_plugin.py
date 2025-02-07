@@ -96,7 +96,7 @@ class MonPyqgis:
         # Must be set in initGui() to survive plugin reloads
         self.first_start = None
         self.canvas = self.iface.mapCanvas()
-
+        
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
@@ -227,6 +227,7 @@ class MonPyqgis:
         self.dlg.button_u2.clicked.connect(self.initie_canvas)
         # Run the dialog event loop
         result = self.dlg.exec_()
+        
         # See if OK was pressed
         if result:
             pass
@@ -256,16 +257,17 @@ class MonPyqgis:
     
     def displayPoint(self, point, button):
           
-        clicked_point = QgsPointXY(point)
+        self.clicked_point = QgsPointXY(point)
         crs_origin = self.canvas.mapSettings().destinationCrs()
         crs_dest = QgsCoordinateReferenceSystem("EPSG:4326") 
         transform = QgsCoordinateTransform(crs_origin, crs_dest, QgsProject.instance())
-        pt_reproj = transform.transform(clicked_point)
+        pt_reproj = transform.transform(self.clicked_point)
         longitude = round(pt_reproj.x(), 5)
         latitude = round(pt_reproj.y(), 5)
         self.dlg.longi.setText(str(longitude))  
         self.dlg.lati.setText(str(latitude))  
         self.affiche_rue(longitude,latitude)
+        self.nb_points_dans_buffer(longitude,latitude)
 
     def affiche_rue(self,longitude,latitude):
 
@@ -274,11 +276,58 @@ class MonPyqgis:
         rue = response.json()
         features = rue['features']
 
-        for feature in features:
-           
+        if features:
+            # Afficher seulement la première donnée
+            feature = features[0]  # Récupérer uniquement le premier élément
             properties = feature['properties']
-    
-            label = properties.get('label', 'No label available') 
+            label = properties.get('label', 'No label available')
             print(f"Label: {label}")
-            self.dlg.adresse.setText(str(label)) 
+            self.dlg.adresse.setText(str(label))
+
+    from qgis.core import QgsPointXY, QgsGeometry, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject
+
+    def nb_points_dans_buffer(self, longitude, latitude):
+        # Récupère la valeur de la couche vecteur
+        couche_vec = self.dlg.liste_c_points.currentText()
+        point = QgsPointXY(longitude, latitude)
+        buffer_value = self.dlg.buffer.value()
+
+        source_crs = QgsCoordinateReferenceSystem("EPSG:4326")  # WGS84
+        target_crs = QgsCoordinateReferenceSystem("EPSG:3857")  # Web Mercator (mètres)
+        transform = QgsCoordinateTransform(source_crs, target_crs, QgsProject.instance())
+     
+        point_a_bufferise = QgsGeometry.fromPointXY(self.clicked_point)
+
+        # Crée le buffer autour du point projeté (en mètres)
+        buff_zone = point_a_bufferise.buffer(buffer_value, 10)  
+
+        # Récupère la couche sélectionnée
+        layers = QgsProject.instance().mapLayersByName(couche_vec)
+
+        layer = layers[0]  # Récupère la première couche trouvée
+        count = 0
+        layer_crs = layer.crs()
+
+        # Si la couche n'est pas en EPSG:3857, on la reprojette dans EPSG:3857
+        if layer_crs.authid() != "EPSG:3857":
+            layer_transform = QgsCoordinateTransform(layer_crs, target_crs, QgsProject.instance())
+        
+        # Parcours chaque entité de la couche
+        for feature in layer.getFeatures():
+            if layer_crs.authid() != "EPSG:3857":
+                feature_geometry = feature.geometry()
+                feature_geometry.transform(layer_transform)
+            else:
+                feature_geometry = feature.geometry()
+
+            # Vérifie si l'entité intersecte le tampon
+            if buff_zone.intersects(feature_geometry):
+                count += 1
+
+        # Afficher ou récupérer le nombre d'éléments dans le buffer
+        print(f"Nombre de points dans le buffer : {count}")
+        return count
+
+
+
 
