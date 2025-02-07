@@ -47,10 +47,17 @@ class MonPyqgisDialog(QtWidgets.QDialog, FORM_CLASS):
 
         # Connecter le signal valueChanged du slider à la méthode updateBufferLabel
         self.buffer.valueChanged.connect(self.updateBufferLabel)
-
+        self.coul_tampon.addItem("black")
+        self.coul_tampon.addItem("yellow")
+        self.coul_tampon.addItem("red")
+        self.coul_tampon.addItem("green")
+        self.quitter.clicked.connect(self.QuitterUI)
     def updateBufferLabel(self):
         # Récupérer la valeur du slider et mettre à jour le label
         value_buffer = self.buffer.value()
         self.buffer_label.setText(str(value_buffer) + " mètres")
 
+    def QuitterUI(self):
+
+        self.close()
 
