@@ -59,6 +59,7 @@ from qgis.gui import (
 QgsRubberBand
  )
 
+import requests
 
 class MonPyqgis:
     """QGIS Plugin Implementation."""
@@ -218,12 +219,12 @@ class MonPyqgis:
             self.first_start = False
             self.dlg = MonPyqgisDialog()
 
-            self.user_story_uno()
+            self.liste_couches_points()
 
         # show the dialog
         self.dlg.show()
         #accès a la carte
-        self.dlg.button_u2.clicked.connect(self.user_story_dos)
+        self.dlg.button_u2.clicked.connect(self.initie_canvas)
         # Run the dialog event loop
         result = self.dlg.exec_()
         # See if OK was pressed
@@ -264,5 +265,20 @@ class MonPyqgis:
         latitude = round(pt_reproj.y(), 5)
         self.dlg.longi.setText(str(longitude))  
         self.dlg.lati.setText(str(latitude))  
+        self.affiche_rue(longitude,latitude)
 
+    def affiche_rue(self,longitude,latitude):
+
+        url = f"https://data.geopf.fr/geocodage/reverse?lat={latitude}&lon={longitude}"
+        response = requests.get(url)
+        rue = response.json()
+        features = rue['features']
+
+        for feature in features:
+           
+            properties = feature['properties']
+    
+            label = properties.get('label', 'No label available') 
+            print(f"Label: {label}")
+            self.dlg.adresse.setText(str(label)) 
 
