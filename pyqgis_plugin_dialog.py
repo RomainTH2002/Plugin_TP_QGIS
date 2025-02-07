@@ -51,6 +51,6 @@ class MonPyqgisDialog(QtWidgets.QDialog, FORM_CLASS):
     def updateBufferLabel(self):
         # Récupérer la valeur du slider et mettre à jour le label
         value_buffer = self.buffer.value()
-        self.buffer_label.setText(str(value_buffer))
+        self.buffer_label.setText(str(value_buffer) + " mètres")
 
 
