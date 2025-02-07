@@ -227,7 +227,8 @@ class MonPyqgis:
         self.dlg.button_u2.clicked.connect(self.initie_canvas)
         # Run the dialog event loop
         result = self.dlg.exec_()
-        
+        self.dlg.quitter.clicked.connect(self.quitter_dialog)
+            
         # See if OK was pressed
         if result:
             pass
@@ -283,7 +284,7 @@ class MonPyqgis:
             label = properties.get('label', 'No label available')
             self.dlg.adresse.setText(str(label))
 
-    from qgis.core import QgsPointXY, QgsGeometry, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject
+    
 
     def nb_points_dans_buffer(self, longitude, latitude):
         # Récupère la valeur de la couche vecteur
@@ -340,8 +341,8 @@ class MonPyqgis:
         # création de la symbologie
                 fill_symbol = QgsFillSymbol.createSimple({
                 'color': 'transparent', 
-                'outline_color': 'brown',  
-                'outline_width': '0.5' 
+                'outline_color': self.dlg.coul_tampon.currentText(),  
+                'outline_width': self.dlg.larg_contour.value()/10 
             })
     
                
@@ -356,8 +357,6 @@ class MonPyqgis:
                     QgsProject.instance().addMapLayer(buffer_layer)
                 else:
                     QgsProject.instance().addMapLayer(buffer_layer)
-             
 
-
-
-
+    def quitter_dialog(self):
+        self.dlg.hide()
