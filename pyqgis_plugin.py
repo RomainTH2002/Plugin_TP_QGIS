@@ -24,7 +24,7 @@
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QEvent
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
-from qgis.core import QgsProject, QgsWkbTypes, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsPointXY
+from qgis.core import QgsProject, QgsWkbTypes, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsPointXY, QgsFeature, QgsVectorLayer, QgsFillSymbol, QgsSimpleFillSymbolLayer, QgsLineSymbol, QgsSingleSymbolRenderer
 from qgis.gui import QgsMapTool, QgsMapToolEmitPoint
 
 # Initialize Qt resources from file resources.py
@@ -281,7 +281,6 @@ class MonPyqgis:
             feature = features[0]  # Récupérer uniquement le premier élément
             properties = feature['properties']
             label = properties.get('label', 'No label available')
-            print(f"Label: {label}")
             self.dlg.adresse.setText(str(label))
 
     from qgis.core import QgsPointXY, QgsGeometry, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject
@@ -299,7 +298,7 @@ class MonPyqgis:
         point_a_bufferise = QgsGeometry.fromPointXY(self.clicked_point)
 
         # Crée le buffer autour du point projeté (en mètres)
-        buff_zone = point_a_bufferise.buffer(buffer_value, 10)  
+        self.buff_zone = point_a_bufferise.buffer(buffer_value, 10)  
 
         # Récupère la couche sélectionnée
         layers = QgsProject.instance().mapLayersByName(couche_vec)
@@ -321,12 +320,43 @@ class MonPyqgis:
                 feature_geometry = feature.geometry()
 
             # Vérifie si l'entité intersecte le tampon
-            if buff_zone.intersects(feature_geometry):
+            if self.buff_zone.intersects(feature_geometry):
                 count += 1
 
         # Afficher ou récupérer le nombre d'éléments dans le buffer
-        print(f"Nombre de points dans le buffer : {count}")
-        return count
+        self.dlg.nb_objets.setText("Nombre de points dans le buffer : " + str(count))
+        self.affiche_buffer()
+        
+
+    def affiche_buffer(self):
+        #initialise l'objet géométrique du buffer a l'EPSG correspondant
+                buffer_layer = QgsVectorLayer(f"Polygon?crs=EPSG:3857", "Buffer Layer", "memory")
+                provider = buffer_layer.dataProvider()
+                feature = QgsFeature()
+        # reprend l'attribut buffer initié précedemment
+                feature.setGeometry(self.buff_zone) 
+                provider.addFeature(feature)
+                buffer_layer.updateExtents()
+        # création de la symbologie
+                fill_symbol = QgsFillSymbol.createSimple({
+                'color': 'transparent', 
+                'outline_color': 'brown',  
+                'outline_width': '0.5' 
+            })
+    
+               
+                renderer = QgsSingleSymbolRenderer(fill_symbol)
+                buffer_layer.setRenderer(renderer)
+                buffer_layer.triggerRepaint() 
+        # vérification d'une couche au nom similaire pour suppression puis re-création
+                layer_buffer = QgsProject.instance().mapLayersByName("Buffer Layer")
+                if layer_buffer:
+                    layer_main = layer_buffer[0]
+                    QgsProject.instance().removeMapLayer(layer_main.id()) 
+                    QgsProject.instance().addMapLayer(buffer_layer)
+                else:
+                    QgsProject.instance().addMapLayer(buffer_layer)
+             
 
 
 
