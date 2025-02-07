@@ -42,5 +42,15 @@ class MonPyqgisDialog(QtWidgets.QDialog, FORM_CLASS):
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
-        
+       # Initialiser le label avec la valeur du slider au démarrage
+        self.updateBufferLabel()
+
+        # Connecter le signal valueChanged du slider à la méthode updateBufferLabel
+        self.buffer.valueChanged.connect(self.updateBufferLabel)
+
+    def updateBufferLabel(self):
+        # Récupérer la valeur du slider et mettre à jour le label
+        value_buffer = self.buffer.value()
+        self.buffer_label.setText(str(value_buffer))
+
 
